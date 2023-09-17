@@ -3,7 +3,6 @@ This is a template Python script.
 """
 
 import logging
-import os
 from pathlib import Path
 # Third-party packages
 import pandas as pd
@@ -15,26 +14,14 @@ _ = None
 
 # Arguments: Meta-variables
 PROJECT_DIR_DEPTH = 2
-IRB_DIR_DEPTH = PROJECT_DIR_DEPTH + 1
-IDR_DATA_REQUEST_DIR_DEPTH = IRB_DIR_DEPTH + 3
 
 LOG_LEVEL = "INFO"
-
-# Arguments: SQL connection settings
-SERVER = "DWSRSRCH01.shands.ufl.edu"
-DATABASE = "DWS_PROD"
-USERDOMAIN = "UFAD"
-USERNAME = os.environ["USER"]
-UID = None
-PWD = os.environ["HFA_UFADPWD"]
 
 # Variables: Path construction: General
 runTimestamp = getTimestamp()
 thisFilePath = Path(__file__)
 thisFileStem = thisFilePath.stem
 projectDir, _ = successiveParents(thisFilePath.absolute(), PROJECT_DIR_DEPTH)
-IRBDir, _ = successiveParents(thisFilePath, IRB_DIR_DEPTH)
-IDRDataRequestDir, _ = successiveParents(thisFilePath.absolute(), IDR_DATA_REQUEST_DIR_DEPTH)
 dataDir = projectDir.joinpath("data")
 if dataDir:
     inputDataDir = dataDir.joinpath("input")
@@ -48,13 +35,6 @@ sqlDir = projectDir.joinpath("sql")
 
 # Variables: Path construction: Project-specific
 pass
-
-# Variables: SQL Parameters
-if UID:
-    uid = UID[:]
-else:
-    uid = fr"{USERDOMAIN}\{USERNAME}"
-conStr = f"mssql+pymssql://{uid}:{PWD}@{SERVER}/{DATABASE}"
 
 # Variables: Other
 pass
@@ -88,18 +68,8 @@ if __name__ == "__main__":
 
     # Arguments: General
     `PROJECT_DIR_DEPTH`: "{PROJECT_DIR_DEPTH}"
-    `IRB_DIR_DEPTH`: "{IRB_DIR_DEPTH}"
-    `IDR_DATA_REQUEST_DIR_DEPTH`: "{IDR_DATA_REQUEST_DIR_DEPTH}"
 
     `LOG_LEVEL` = "{LOG_LEVEL}"
-
-    # Arguments: SQL connection settings
-    `SERVER` = "{SERVER}"
-    `DATABASE` = "{DATABASE}"
-    `USERDOMAIN` = "{USERDOMAIN}"
-    `USERNAME` = "{USERNAME}"
-    `UID` = "{UID}"
-    `PWD` = censored
     """)
 
     # Script
