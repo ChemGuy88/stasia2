@@ -3,21 +3,32 @@ This is a template Python script.
 """
 
 import logging
+import os
+import sys
 from pathlib import Path
 # Third-party packages
-import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 # Local packages
 from drapi.drapi import getTimestamp, successiveParents, makeDirPath
+from functions import randomDelay
 
 # Arguments
-_ = None
+EMAIL_ADDRESS = "hf.autore@hotmail.com"
+PASSWORD = os.environ["HFA_STASIA2_PWD"]
+
+NUM_MAX_CLICKS = 100
+CHROME_DRIVER_PATH = "data/input/chromedriver-mac-x64_116/chromedriver"
+CHROME_BINARY_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 # Arguments: Meta-variables
 PROJECT_DIR_DEPTH = 2
 
-ROOT_DIRECTORY = "DATA_REQUEST_DIRECTORY"  # TODO One of the following:
-                                           # ["DATA_REQUEST_DIRECTORY",  # noqa
-                                           #  "Other"]                   # noqa
+ROOT_DIRECTORY = "PROJECT_OR_PORTION_DIRECTORY"  # TODO One of the following:
+                                                 # ["DATA_REQUEST_DIRECTORY",  # noqa
+                                                 #  "Other"]                   # noqa
 LOG_LEVEL = "INFO"
 
 # Variables: Path construction: General
@@ -55,7 +66,7 @@ makeDirPath(runLogsDir)
 
 # Logging block
 logpath = runLogsDir.joinpath(f"log {runTimestamp}.log")
-logFormat = logging.Formatter(f"""[%(asctime)s]\n[%(levelname)s](%(funcName)s)\n{"-"*24}> %(message)s""")
+logFormat = logging.Formatter("""[%(asctime)s][%(levelname)s](%(funcName)s)> %(message)s""")
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +96,57 @@ if __name__ == "__main__":
     """)
 
     # Script
-    _ = pd
+    HOMEURL = "https://www.anastasiadate.com/"
+    DELAY = 2
+
+    options = webdriver.ChromeOptions()
+    # options.headless = True
+    options.add_argument('window-size=1920x1080')
+    options.binary_location = CHROME_BINARY_PATH
+    driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
+
+    # Log in
+    driver.get(HOMEURL)
+
+    # Click on login button
+    cssSignInButton = """[class="button default"] > [url="/texts/landing/forms/authorization#signin"]"""
+    driver.find_elements_by_css_selector(css_selector=cssSignInButton)
+    signinbutton = WebDriverWait(driver, DELAY).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssSignInButton)))
+
+    # Make sure webform is displayed
+    cssWebForm = """[class="popup login form top with-arrow"]"""
+    webForm = driver.find_element_by_css_selector(cssWebForm)
+    it = 0
+    while not webForm.is_displayed():
+        it += 1
+        signinbutton.click()
+        logger.info(f"""  Displaying login webform, attempt {it} of {NUM_MAX_CLICKS}.""")
+        if it == NUM_MAX_CLICKS:
+            logger.info("""  The maximum number of clicks have been attempted.""")
+            sys.exit()
+
+    # Enter email
+    cssEmailForm = """[id="login"][name="email"][class="input txt"][type="text"]"""
+    emailForm = WebDriverWait(driver, DELAY).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssEmailForm)))
+    emailForm.send_keys(EMAIL_ADDRESS)
+
+    # Enter password
+    cssPasswordForm = """[name="password"][class="input txt"][type="password"]"""
+    passwordForm = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssPasswordForm)))
+    passwordForm.send_keys(PASSWORD)
+
+    # Submit form
+    cssSubmitForm = """[type="submit"] > [url="/texts/landing/forms/authorization#signin"]"""
+    submitFormButton = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssSubmitForm)))
+    submitFormButton.click()
+
+    if False:
+        with webdriver.Chrome(CHROME_DRIVER_PATH, options=options) as driver:
+            # TODO Search all profiles
+            pass
+
+            # TODO Scrape all profiles
+            pass
 
     # End script
     logging.info(f"""Finished running "{thisFilePath.relative_to(projectDir)}".""")
