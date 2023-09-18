@@ -1,5 +1,5 @@
 """
-Perform a census of the dating website. I.e., get all profile URLs.
+Scrape individual profiles
 """
 
 import logging
@@ -8,12 +8,15 @@ from pathlib import Path
 # Third-party packages
 import pandas as pd
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 # Local packages
 from drapi.drapi import getTimestamp, successiveParents, makeDirPath
 from functions import randomDelay, login
 
 # Arguments
+PROFILE_LINKS_FILE_PATH = "data/input/Profile Links.CSV"
 EMAIL_ADDRESS = "hf.autore@hotmail.com"
 PASSWORD = os.environ["HFA_STASIA2_PWD"]
 
@@ -100,73 +103,56 @@ if __name__ == "__main__":
 
     # Script
     HOMEURL = "https://www.anastasiadate.com/"
-    DELAY = 2
 
     # Start driver
     options = webdriver.ChromeOptions()
-    options.headless = True
+    # options.headless = True
     options.add_argument('window-size=1920x1080')
     options.binary_location = CHROME_BINARY_PATH
     driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
 
     # Log in
-    driver = login(username=EMAIL_ADDRESS, password=PASSWORD, driver=driver)
+    driver = login(email=EMAIL_ADDRESS,
+                   password=PASSWORD,
+                   homeURL=HOMEURL,
+                   numMaxClicks=NUM_MAX_CLICKS,
+                   driver=driver,
+                   logger=logger)
 
-    # Search all profiles
-    SEARCH_ALL_PROFILES_URL = "https://www.anastasiadate.com/Pages/Search/SearchResults.aspx?sortBy=4"
-    driver.get(SEARCH_ALL_PROFILES_URL)
-    WebDriverWait(driver, randomDelay(1, 5))
+    # Load profile URLs
+    profileLinks = pd.read_csv(PROFILE_LINKS_FILE_PATH, index_col=0)
+    profileLinks = profileLinks.drop_duplicates()
 
-    dfindex0 = 1
-    mode = "w"
-    header = True
+    # TODO Scrape profiles
+    for label, series in profileLinks.iterrows():
+        link = series["href"]
+        driver.get(link)
 
-    ## >>> Get all profile URLs on page
-    cssProfileLink = """[class="lady-name"] > [class="b"]"""
-    profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
+        # Wait until profile is visible
+        # class="ladyProfile-content"
+        # class="second-part-profile"
+        cssProfileText = """[class="second-part-profile"] > [class="ladyProfile-content"]"""
+        cssProfileText = """[class="second-part-profile"]"""
+        _ = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssProfileText)))
 
-    results = []
-    for el in profileLinks:
-        href = el.get_attribute("href")
-        results.append(href)
-
-    df = pd.DataFrame(results, columns=["href"])
-    dfindex1 = dfindex0 + len(results)
-    df.index = range(dfindex0, dfindex1)
-    fpath = runOutputDir.joinpath("Profile Links.CSV")
-    df.to_csv(fpath, mode=mode, header=header)
-
-    xpathNextButton = '//a[text()="Next"]'
-    nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
-    WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
-
-    mode = "a"
-    header = False
-    while len(nextButtonList) > 0:
-        logger.info(f"""  Working on profiles {dfindex0} to {dfindex1}.""")
-        ## Click on "Next" button
-        nextButton = nextButtonList[0]
-        nextButton.click()
+        # Scrape profile text
+        if True:
+            # TODO
+            xpathpp2s1 = '//*[contains(text(), "Character")]'
+            pp2s1 = driver.find_element_by_xpath(xpath=xpathpp2s1)
+            xpathpp2s2 = ""
+            pp2s2 = driver.find_element_by_xpath(xpath=xpathpp2s2)
+            xpathpp2s3 = ""
+            pp2s3 = driver.find_element_by_xpath(xpath=xpathpp2s3)
+        elif True:
+            # Tested and works, but prefer xpath because it's more specific.
+            css = """[class="redText b"] + p"""  # class="redText b"
+            li = driver.find_elements_by_css_selector(css_selector=css)
+            pp2s1, pp2s2, pp2s3 = li
+            pp2s1t = pp2s1.text
+            pp2s2t = pp2s2.text
+            pp2s3t = pp2s3.text
         WebDriverWait(driver, randomDelay(1, 5))
-
-        ## >>> Get all profile URLs on page
-        cssProfileLink = """[class="lady-name"] > [class="b"]"""
-        profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
-
-        results = []
-        for el in profileLinks:
-            href = el.get_attribute("href")
-            results.append(href)
-
-        df = pd.DataFrame(results, columns=["href"])
-        dfindex1 = dfindex0 + len(results)
-        df.index = range(dfindex0, dfindex1)
-        fpath = runOutputDir.joinpath("Profile Links.CSV")
-        df.to_csv(fpath, mode=mode, header=header)
-
-        xpathNextButton = '//a[text()="Next"]'
-        nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
-        WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
 
     # End script
     logging.info(f"""Finished running "{thisFilePath.relative_to(projectDir)}".""")
