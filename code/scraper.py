@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 # Third-party packages
+import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -87,7 +88,12 @@ if __name__ == "__main__":
     logger.info(f"""Begin running "{thisFilePath}".""")
     logger.info(f"""All other paths will be reported in debugging relative to `{ROOT_DIRECTORY}`: "{rootDirectory}".""")
     logger.info(f"""Script arguments:
-    ``: "{"..."}"
+    `EMAIL_ADDRESS`: "{EMAIL_ADDRESS}"
+    `PASSWORD`: "censored"
+
+    `NUM_MAX_CLICKS`: "{NUM_MAX_CLICKS}"
+    `CHROME_DRIVER_PATH`: "{CHROME_DRIVER_PATH}"
+    `CHROME_BINARY_PATH`: "{CHROME_BINARY_PATH}"
 
     # Arguments: General
     `PROJECT_DIR_DEPTH`: "{PROJECT_DIR_DEPTH}"
@@ -107,11 +113,13 @@ if __name__ == "__main__":
 
     # Log in
     driver.get(HOMEURL)
+    WebDriverWait(driver, randomDelay(1, 5))
 
     # Click on login button
     cssSignInButton = """[class="button default"] > [url="/texts/landing/forms/authorization#signin"]"""
     driver.find_elements_by_css_selector(css_selector=cssSignInButton)
     signinbutton = WebDriverWait(driver, DELAY).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssSignInButton)))
+    WebDriverWait(driver, randomDelay(1, 5))
 
     # Make sure webform is displayed
     cssWebForm = """[class="popup login form top with-arrow"]"""
@@ -124,28 +132,91 @@ if __name__ == "__main__":
         if it == NUM_MAX_CLICKS:
             logger.info("""  The maximum number of clicks have been attempted.""")
             sys.exit()
+    logger.info(f"""  Operation was successful after {it} attempts.""")
+    WebDriverWait(driver, randomDelay(1, 5))
 
     # Enter email
     cssEmailForm = """[id="login"][name="email"][class="input txt"][type="text"]"""
     emailForm = WebDriverWait(driver, DELAY).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssEmailForm)))
     emailForm.send_keys(EMAIL_ADDRESS)
+    WebDriverWait(driver, randomDelay(1, 5))
 
     # Enter password
     cssPasswordForm = """[name="password"][class="input txt"][type="password"]"""
     passwordForm = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssPasswordForm)))
     passwordForm.send_keys(PASSWORD)
+    WebDriverWait(driver, randomDelay(1, 5))
 
     # Submit form
     cssSubmitForm = """[type="submit"] > [url="/texts/landing/forms/authorization#signin"]"""
     submitFormButton = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssSubmitForm)))
     submitFormButton.click()
+    WebDriverWait(driver, randomDelay(1, 5))
+
+    # Wait until home page loads
+    if True:
+        WebDriverWait(driver, randomDelay(10, 20))
+    elif True:
+        cssHomePageTiles = """[class="lady-card tile"]"""
+        WebDriverWait(driver, randomDelay(10, 20)).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssHomePageTiles)))
+
+    # Search all profiles
+    SEARCH_ALL_PROFILES_URL = "https://www.anastasiadate.com/Pages/Search/SearchResults.aspx?sortBy=4"
+    driver.get(SEARCH_ALL_PROFILES_URL)
+    WebDriverWait(driver, randomDelay(1, 5))
+
+    dfindex0 = 1
+    mode = "w"
+    header = True
+
+    ## >>> Get all profile URLs on page
+    cssProfileLink = """[class="lady-name"] > [class="b"]"""
+    profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
+
+    results = []
+    for el in profileLinks:
+        href = el.get_attribute("href")
+        results.append(href)
+
+    df = pd.DataFrame(results, columns=["href"])
+    dfindex1 = dfindex0 + len(results)
+    df.index = range(dfindex0, dfindex1)
+    fpath = runOutputDir.joinpath("Profile Links.CSV")
+    df.to_csv(fpath, mode=mode, header=header)
+
+    xpathNextButton = '//a[text()="Next"]'
+    nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
+    WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
+
+    mode = "a"
+    header = False
+    while len(nextButtonList) > 0:
+        ## Click on "Next" button
+        nextButton = nextButtonList[0]
+        nextButton.click()
+        WebDriverWait(driver, randomDelay(1, 5))
+
+        ## >>> Get all profile URLs on page
+        cssProfileLink = """[class="lady-name"] > [class="b"]"""
+        profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
+
+        results = []
+        for el in profileLinks:
+            href = el.get_attribute("href")
+            results.append(href)
+
+        df = pd.DataFrame(results, columns=["href"])
+        dfindex1 = dfindex0 + len(results)
+        df.index = range(dfindex0, dfindex1)
+        fpath = runOutputDir.joinpath("Profile Links.CSV")
+        df.to_csv(fpath, mode=mode, header=header)
+
+        xpathNextButton = '//a[text()="Next"]'
+        nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
+        WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
 
     if False:
         with webdriver.Chrome(CHROME_DRIVER_PATH, options=options) as driver:
-            # TODO Search all profiles
-            pass
-
-            # TODO Scrape all profiles
             pass
 
     # End script
