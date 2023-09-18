@@ -1,5 +1,5 @@
 """
-This is a template Python script.
+Perform a census of the dating website. I.e., get all profile URLs.
 """
 
 import logging
@@ -105,8 +105,9 @@ if __name__ == "__main__":
     HOMEURL = "https://www.anastasiadate.com/"
     DELAY = 2
 
+    # Start driver
     options = webdriver.ChromeOptions()
-    # options.headless = True
+    options.headless = True
     options.add_argument('window-size=1920x1080')
     options.binary_location = CHROME_BINARY_PATH
     driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
@@ -157,6 +158,7 @@ if __name__ == "__main__":
     if True:
         WebDriverWait(driver, randomDelay(10, 20))
     elif True:
+        # This option used to work but didn't on the last few tries for an uknown reason.
         cssHomePageTiles = """[class="lady-card tile"]"""
         WebDriverWait(driver, randomDelay(10, 20)).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssHomePageTiles)))
 
@@ -214,10 +216,6 @@ if __name__ == "__main__":
         xpathNextButton = '//a[text()="Next"]'
         nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
         WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
-
-    if False:
-        with webdriver.Chrome(CHROME_DRIVER_PATH, options=options) as driver:
-            pass
 
     # End script
     logging.info(f"""Finished running "{thisFilePath.relative_to(projectDir)}".""")
