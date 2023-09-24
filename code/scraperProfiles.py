@@ -4,10 +4,13 @@ Scrape individual profiles
 
 import logging
 import os
+import re
+import time
 from pathlib import Path
 # Third-party packages
 import pandas as pd
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,7 +19,7 @@ from drapi.drapi import getTimestamp, successiveParents, makeDirPath
 from functions import randomDelay, login
 
 # Arguments
-PROFILE_LINKS_FILE_PATH = "data/input/Profile Links.CSV"
+PROFILE_LINKS_FILE_PATH = "data/input/Profile Links 2.CSV"
 EMAIL_ADDRESS = "hf.autore@hotmail.com"
 PASSWORD = os.environ["HFA_STASIA2_PWD"]
 
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     logger.info(f"""All other paths will be reported in debugging relative to `{ROOT_DIRECTORY}`: "{rootDirectory}".""")
     logger.info(f"""Script arguments:
     `EMAIL_ADDRESS`: "{EMAIL_ADDRESS}"
-    `PASSWORD`: "censored"
+    `PASSWORD`: censored
 
     `NUM_MAX_CLICKS`: "{NUM_MAX_CLICKS}"
     `CHROME_DRIVER_PATH`: "{CHROME_DRIVER_PATH}"
@@ -112,47 +115,75 @@ if __name__ == "__main__":
     driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
 
     # Log in
+    logger.info("""Logging in...""")
     driver = login(email=EMAIL_ADDRESS,
                    password=PASSWORD,
                    homeURL=HOMEURL,
                    numMaxClicks=NUM_MAX_CLICKS,
                    driver=driver,
                    logger=logger)
+    logger.info("""Logging in... Done.""")
 
     # Load profile URLs
     profileLinks = pd.read_csv(PROFILE_LINKS_FILE_PATH, index_col=0)
     profileLinks = profileLinks.drop_duplicates()
 
-    # TODO Scrape profiles
+    # Scrape profiles
+    logger.info("""Scraping profiles.""")
+    pattern = r"LadyID=(?P<ladyID>\d{7})$"
+    mode = "w"
+    header = True
     for label, series in profileLinks.iterrows():
         link = series["href"]
+        reObj = re.search(pattern, link)
+        if reObj:
+            groupdict = reObj.groupdict()
+            ladyID = groupdict["ladyID"]
+        else:
+            raise Exception(f"""Link was of an unexpected format: "{link}".""")
+        logger.info(f"""Working on profile "{ladyID}".""")
         driver.get(link)
 
         # Wait until profile is visible
-        # class="ladyProfile-content"
-        # class="second-part-profile"
-        cssProfileText = """[class="second-part-profile"] > [class="ladyProfile-content"]"""
-        cssProfileText = """[class="second-part-profile"]"""
-        _ = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssProfileText)))
+        logger.info("""  Waiting until profile is visible.""")
+        try:
+            cssProfileText = """[class="second-part-profile"]"""
+            _ = WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssProfileText)))
+            canContinue = True
+        except TimeoutException as err:
+            _ = err
+            logger.info("  A timeout exception was encountered.")
+            canContinue = False
+        if canContinue:
+            logger.info("""  Waiting until profile is visible - Done.""")
 
-        # Scrape profile text
-        if True:
-            # TODO
-            xpathpp2s1 = '//*[contains(text(), "Character")]'
-            pp2s1 = driver.find_element_by_xpath(xpath=xpathpp2s1)
-            xpathpp2s2 = ""
-            pp2s2 = driver.find_element_by_xpath(xpath=xpathpp2s2)
-            xpathpp2s3 = ""
-            pp2s3 = driver.find_element_by_xpath(xpath=xpathpp2s3)
-        elif True:
-            # Tested and works, but prefer xpath because it's more specific.
-            css = """[class="redText b"] + p"""  # class="redText b"
+            # Scrape profile text
+            logger.info("""  Scraping profile text.""")
+            css = """[class="redText b"] + p"""
             li = driver.find_elements_by_css_selector(css_selector=css)
             pp2s1, pp2s2, pp2s3 = li
             pp2s1t = pp2s1.text
             pp2s2t = pp2s2.text
             pp2s3t = pp2s3.text
-        WebDriverWait(driver, randomDelay(1, 5))
+            logger.info("""  Scraping profile text - Done.""")
+
+            # Save text
+            logger.info("""  Saving text.""")
+            df = pd.DataFrame([ladyID, pp2s1t, pp2s2t, pp2s3t]).T
+            df.columns = ["Lady ID", "Character", "Interests", "Her Type of Man"]
+            df = df.rename(index={0: label})
+            fpath = runOutputDir.joinpath("Profile Contents.CSV")
+            df.to_csv(fpath, mode=mode, header=header)
+            logger.info(f"""  Text saved to "{fpath.absolute().relative_to(projectDir)}".""")
+
+            # Delay
+            logger.info("""  Adding pause.""")
+            time.sleep(randomDelay(1, 10))
+            logger.info("""  Adding pause - Done.""")
+            mode = "a"
+            header = False
+        else:
+            pass
 
     # End script
     logging.info(f"""Finished running "{thisFilePath.relative_to(projectDir)}".""")
