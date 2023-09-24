@@ -86,7 +86,7 @@ if __name__ == "__main__":
     logger.info(f"""All other paths will be reported in debugging relative to `{ROOT_DIRECTORY}`: "{rootDirectory}".""")
     logger.info(f"""Script arguments:
     `EMAIL_ADDRESS`: "{EMAIL_ADDRESS}"
-    `PASSWORD`: "censored"
+    `PASSWORD`: censored
 
     `NUM_MAX_CLICKS`: "{NUM_MAX_CLICKS}"
     `CHROME_DRIVER_PATH`: "{CHROME_DRIVER_PATH}"
@@ -100,22 +100,32 @@ if __name__ == "__main__":
 
     # Script
     HOMEURL = "https://www.anastasiadate.com/"
-    DELAY = 2
+    IN_BETWEEN_PAGE_DELAY = 10
 
     # Start driver
     options = webdriver.ChromeOptions()
-    options.headless = True
+    # options.headless = True
     options.add_argument('window-size=1920x1080')
     options.binary_location = CHROME_BINARY_PATH
     driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
 
     # Log in
-    driver = login(username=EMAIL_ADDRESS, password=PASSWORD, driver=driver)
+    logger.info("Logging in...")
+    driver = login(email=EMAIL_ADDRESS, password=PASSWORD, homeURL=HOMEURL, numMaxClicks=NUM_MAX_CLICKS, driver=driver, logger=logger)
+    logger.info("Logging in... - Done.")
+    driver.implicitly_wait(IN_BETWEEN_PAGE_DELAY)
 
     # Search all profiles
+    logger.info("Going to profile search page...")
+    logger.info("  Getting page.")
     SEARCH_ALL_PROFILES_URL = "https://www.anastasiadate.com/Pages/Search/SearchResults.aspx?sortBy=4"
-    driver.get(SEARCH_ALL_PROFILES_URL)
-    WebDriverWait(driver, randomDelay(1, 5))
+    driver.get(SEARCH_ALL_PROFILES_URL)  # This lands on a non-logged-in page, for an unknown reason. The issue is fixed by simply refreshing the browser, in the line below.
+    logger.info("  Getting page - Done.")
+    logger.info("  Refreshing.")
+    driver.refresh()
+    logger.info("  Refreshing - Done.")
+    logger.info("Going to profile search page... - Done.")
+    driver.implicitly_wait(IN_BETWEEN_PAGE_DELAY)
 
     dfindex0 = 1
     mode = "w"
@@ -143,6 +153,8 @@ if __name__ == "__main__":
     mode = "a"
     header = False
     while len(nextButtonList) > 0:
+        dfindex0 = dfindex1
+        dfindex1 = dfindex0 + len(results)
         logger.info(f"""  Working on profiles {dfindex0} to {dfindex1}.""")
         ## Click on "Next" button
         nextButton = nextButtonList[0]
