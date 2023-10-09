@@ -34,13 +34,13 @@ def login(email: str,
 
     # Click on login button
     cssSignInButton = """[class="button default"] > [url="/texts/landing/forms/authorization#signin"]"""
-    driver.find_elements_by_css_selector(css_selector=cssSignInButton)
+    driver.find_elements(By.CSS_SELECTOR, cssSignInButton)
     signinbutton = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssSignInButton)))
     WebDriverWait(driver, randomDelay(1, 5))
 
     # Make sure webform is displayed
     cssWebForm = """[class="popup login form top with-arrow"]"""
-    webForm = driver.find_element_by_css_selector(cssWebForm)
+    webForm = driver.find_element(By.CSS_SELECTOR, cssWebForm)
     it = 0
     while not webForm.is_displayed():
         it += 1
@@ -60,7 +60,7 @@ def login(email: str,
 
     # Enter password
     cssPasswordForm = """[name="password"][class="input txt"][type="password"]"""
-    passwordForm = WebDriverWait(driver, randomDelay()).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssPasswordForm)))
+    passwordForm = WebDriverWait(driver, randomDelay(min=15, max=20)).until(EC.element_to_be_clickable((By.CSS_SELECTOR, cssPasswordForm)))
     passwordForm.send_keys(password)
     WebDriverWait(driver, randomDelay(1, 5))
 

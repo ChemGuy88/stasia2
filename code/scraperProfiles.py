@@ -5,12 +5,14 @@ Scrape individual profiles
 import logging
 import os
 import re
+import sys
 import time
 from pathlib import Path
 # Third-party packages
 import pandas as pd
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -24,8 +26,13 @@ EMAIL_ADDRESS = "hf.autore@hotmail.com"
 PASSWORD = os.environ["HFA_STASIA2_PWD"]
 
 NUM_MAX_CLICKS = 100
-CHROME_DRIVER_PATH = "data/input/chromedriver-mac-x64_116/chromedriver"
-CHROME_BINARY_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+platform = sys.platform
+if platform == "darwin":
+    CHROME_DRIVER_PATH = "data/input/chromedriver-mac-x64_116/chromedriver"
+    CHROME_BINARY_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+elif platform == "win32":
+    CHROME_DRIVER_PATH = r"data\input\chromedriver-win32\chromedriver.exe"
+    CHROME_BINARY_PATH = r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
 
 # Arguments: Meta-variables
 PROJECT_DIR_DEPTH = 2
@@ -109,10 +116,17 @@ if __name__ == "__main__":
 
     # Start driver
     options = webdriver.ChromeOptions()
-    # options.headless = True
+    options.add_argument("--headless=new")
     options.add_argument('window-size=1920x1080')
-    options.binary_location = CHROME_BINARY_PATH
-    driver = webdriver.Chrome(CHROME_DRIVER_PATH, options=options)
+    if platform == "darwin":
+        options.binary_location = CHROME_BINARY_PATH
+    elif platform == "win32":
+        if False:
+            # Savings this here in case it's needed in the future
+            options.binary_location = CHROME_BINARY_PATH
+        elif True:
+            pass
+    driver = webdriver.Chrome(service=Service(CHROME_DRIVER_PATH), options=options)
 
     # Log in
     logger.info("""Logging in...""")
@@ -130,7 +144,7 @@ if __name__ == "__main__":
 
     # Scrape profiles
     logger.info("""Scraping profiles.""")
-    pattern = r"LadyID=(?P<ladyID>\d{7})$"
+    pattern = r"LadyID=(?P<ladyID>\d+)$"
     mode = "w"
     header = True
     for label, series in profileLinks.iterrows():
@@ -160,7 +174,7 @@ if __name__ == "__main__":
             # Scrape profile text
             logger.info("""  Scraping profile text.""")
             css = """[class="redText b"] + p"""
-            li = driver.find_elements_by_css_selector(css_selector=css)
+            li = driver.find_elements(By.CSS_SELECTOR, css)
             pp2s1, pp2s2, pp2s3 = li
             pp2s1t = pp2s1.text
             pp2s2t = pp2s2.text

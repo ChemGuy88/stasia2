@@ -8,6 +8,7 @@ from pathlib import Path
 # Third-party packages
 import pandas as pd
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 # Local packages
 from drapi.drapi import getTimestamp, successiveParents, makeDirPath
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
     ## >>> Get all profile URLs on page
     cssProfileLink = """[class="lady-name"] > [class="b"]"""
-    profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
+    profileLinks = driver.find_elements(By.CSS_SELECTOR, cssProfileLink)
 
     results = []
     for el in profileLinks:
@@ -147,7 +148,7 @@ if __name__ == "__main__":
     df.to_csv(fpath, mode=mode, header=header)
 
     xpathNextButton = '//a[text()="Next"]'
-    nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
+    nextButtonList = driver.find_elements(By.XPATH, xpathNextButton)
     WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
 
     mode = "a"
@@ -163,7 +164,7 @@ if __name__ == "__main__":
 
         ## >>> Get all profile URLs on page
         cssProfileLink = """[class="lady-name"] > [class="b"]"""
-        profileLinks = driver.find_elements_by_css_selector(css_selector=cssProfileLink)
+        profileLinks = driver.find_elements(By.CSS_SELECTOR, cssProfileLink)
 
         results = []
         for el in profileLinks:
@@ -177,7 +178,7 @@ if __name__ == "__main__":
         df.to_csv(fpath, mode=mode, header=header)
 
         xpathNextButton = '//a[text()="Next"]'
-        nextButtonList = driver.find_elements_by_xpath(xpath=xpathNextButton)
+        nextButtonList = driver.find_elements(By.XPATH, xpathNextButton)
         WebDriverWait(driver, randomDelay(1, 5))  ## <<< Get all profile URLs on page  # noqa
 
     # End script
